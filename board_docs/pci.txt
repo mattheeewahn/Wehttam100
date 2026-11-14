@@ -1,0 +1,16 @@
+M8MBC-586 PCI bus:
+
+The M8MBC-586 features a PCI bus implemented in the CTRL FPGA. There are three 5V PCI slots on the board.
+
+Slots:
+There are three 5V PCI slots on the board. Each slot has it's own PCI REQ#/GNT# pair going to the CTRL FPGA.
+
+Interrupts:
+PCI interrupts are routed to the ISA FPGA (SB). The SB FPGA translates PCI interrupts to legacy ISA interrupts. PCI_INT lines are pulled up to 5V via 4.7K resistors and voltage translated to 3.3V via 74CBTD3384APW bus switch.
+Interrupt maping:
+Slot 1 - PCI_INTA#. PCI_INTB#, PCI_INTC#, PCI_INTD# 
+Slot 2 - PCI_INTB#, PCI_INTC#, PCI_INTD#, PCI_INTA#
+Slot 3 - PCI_INTC#, PCI_INTD#, PCI_INTA#, PCI_INTB#
+
+Voltage translation:
+The XC6SLX9 FPGAs are 3.3V I/O devices, but the PCI bus is 5V. There are five 74CBTD3384APW bus switches to translate data bus and 5V PCi signals going to the FPGA. Bridge output only signals are not buffered (like PCI_RESET#, PCI_Sx_GNT#). The pre-translated bus is also connected to the ISA FPGA (SB) as its acts like typical PCI bridge / south bridge.

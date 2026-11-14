@@ -1,0 +1,39 @@
+The M8MBC-586 features a system controller made with RP2040 microcontroller (U602). It's main task is to manage board even when it's turned off.
+
+Its tasks:
+- Main 66 MHz clock generation
+- Power management and reset
+- Voltage monitoring
+- Communication with SB FPGA via RP-SB link
+
+On power on the syscon waits asserts reset signal and waits for the ATX PSU to stabilize (PWR_OK asserted). When PWR_OK asserts ok, it was few milliseconds and it starts to send all bitstreams to onboard FPGAs. 
+
+Communication (SB-RP link):
+To communicate with the chipset, the RP2040 implements a custom one-way communication interface connected to the SB. It periodically sends status information to the SB like voltages.
+
+Reset & power:
+The syscon also manages power and reset. SB FPGA can request reset or power down via dedicated POWER_REQ line. It's used with combination of TODO pin.
+Asserting just POWER_REQ will make the RP2040 send global reset. To power off the board, the SB needs to also assert TODO signal at the same time. 
+
+PS_ON# circuit:
+The PSU PS_ON# signal is not directly connected to the RP2040 GPIO. Instead, it is connected to a MOSFET transistor circuit that is controlled by GPIO17. When the RP2040 wants to turn on the PSU, it needs to drive GPIO17 high, which will turn on the MOSFET and drive the PS_ON# signal low, thus turning on the PSU.
+
+PWR_OK circuit:
+The PWR_OK signal from the PSU is connected to a voltage divider circuit that scales down the voltage to a safe level for the RP2040 GPIO. The scaled-down signal is then connected to GPIO16 of the RP2040. The RP2040 monitors this signal to determine when the PSU has stabilized and is ready for operation. The voltage divider circuit resistor values are: 1.8K and 3.3K (5V scales down to about 3.25V). PWR_OK is high level active signal.
+
+USB-C connector on back:
+The M8MBC-586 features a USB-C connector on the back of the board. It's connected to the RP2040 and can be used for debugging, programming, and communication with the system controller. The USB-C interface provides a convenient way to interact with the board without needing additional adapters or connectors.
+
+RP2040 flash:
+The RP2040 requires an external flash memory to store its firmware and other data. The PCB includes footprint designed for W25Q128JVS flash memory chip, which is a 128 Mbit (16 MB) serial flash memory. The footprint is also compatible with smaller flash chips like W25Q64JV (64 Mbit) and W25Q32JV (32 Mbit) - as for time of writing the required flash space is not defined, but at least 4 MB is recommended.
+
+Debug header:
+J603 is a 4-pin debug header with SWD interface exposed. Pinout:
+- Pin 1: SWCLK
+- Pin 2: GND
+- Pin 3: SWDIO
+- Pin 4: RUN
+
+Debug led:
+There is a debug LED connected to the GPIO25 of the RP2040.
+

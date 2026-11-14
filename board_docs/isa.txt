@@ -1,0 +1,7 @@
+M8MBC-586 ISA bus:
+
+The M8MBC-586 features an ISA bus implemented in the SB (ISA) FPGA. The SB FPGA acts as a PCI-ISA bridge, providing legacy ISA bus functionality. There are two 16-bit ISA slots on the board. 
+
+The slots are fully wired to the SB FPGA, which handles all the necessary address decoding, data transfer, and control signal generation. The ISA bus operates at /4 of the PCI bus clock, which is typically 33.3 MHz, resulting in an ISA bus clock of 8.33 MHz.
+
+The only omitted feature is MASTER signal as it complicates the design and is not needed for 90% of ISA cards. It's usually only used for obscure SCSI ISA cards.

@@ -1,0 +1,89 @@
+M8MBC-586: CPU:
+
+The M8MBC-586 features a "Socket 7" CPU socket, which is compatible with Intel Pentium, AMD K5/K6, Cyrix 6x86, and other Socket 5/7 CPUs.
+
+The CPU is connected to the DATA FPGA via 64-bit data bus. Rest of the CPU signals are connected to the CTRL FPGA (address lines, control signals, etc.). The CTRL FPGA is responsible for generating all necessary signals for the CPU to operate correctly.
+To communicate with the DATA FPGA, the CTRL FPGA uses a 32-bit "interconnect" bus with 5 control signals. The DATA FPGA is responsible for properly muxing data between the CPU, SDRAM, and the CTRL FPGA.
+
+Signals:
+- Main buses:
+D0-D63 - I/O - CPU data bus, connected to DATA FPGA
+A0-A31 - I/O - CPU address bus, connected to CTRL FPGA
+A20M# - IN - connected to SB FPGA
+BE0#-BE7# - OUT - CPU byte enable signals, connected to CTRL FPGA
+
+- Main control
+BRDY# - OUT - CPU bus ready signal, connected to CTRL FPGA
+BRDYC# - OUT - NC
+ADS# - OUT - CPU address/data strobe, connected to CTRL FPGA
+ADSC# - OUT - NC
+CLK - IN - CPU clock, connected to 66 MHz clock fan-out buffer
+
+- Cycle definition and control:
+D/C# - OUT - CPU data/cycle definition signal, connected to CTRL FPGA
+EWBE# - IN - External write buffer empty, connected to CTRL FPGA
+LOCK# - OUT - Bus lock signal, connected to CTRL FPGA
+M/IO# - OUT - Memory / I/O cycle definition, connected to CTRL FPGA
+NA# - IN - Next address, connected to CTRL FPGA
+SCYC - OUT - Split cycle, NC
+W/R# - OUT - CPU write/read signal, connected to CTRL FPGA
+
+Reset, init, interrupts:
+- FLUSH# - IN - CPU cache flush signal, connected to CTRL FPGA
+- INIT# - IN - CPU init signal, connected to SB FPGA
+- INTR - IN - CPU interrupt request, connected to SB FPGA
+- NMI - IN - CPU non-maskable interrupt, connected to SB FPGA
+- RESET# - IN - CPU reset signal, connected to CTRL FPGA
+- SMI# - IN - CPU system management interrupt, connected to SB FPGA
+- SMI_ACT# - OUT - CPU system management mode active, connected to CTRL FPGA
+- STPCLK# - IN - CPU stop clock signal, connected to SB FPGA
+- FERR# - OUT - CPU floating point error, connected to SB FPGA
+- IGNNE# - IN - CPU ignore numeric error, connected to SB FPGA
+
+- Bus arbitration:
+AHOLD - IN - connected to CTRL FPGA
+BOFF# - IN - connected to CTRL FPGA
+BREQ - OUT - NC
+HLDA - OUT - NC
+HOLD - IN - connected to GND
+
+- Inquiry cycles:
+INV - IN - connected together with KEN# (similar trick used in 430TX), CPU cache invalidation signal
+HITM# - OUT - snoop cycle hit modified, connected to CTRL FPGA
+HIT# - OUT - snoop cycle hit, connected to CTRL FPGA
+EADS# - IN - External address/data strobe, Inquire cycle, connected to CTRL FPGA
+
+- Cache control
+WB/WT# - IN - Write back / write through, exposed on JP201 jumper
+PWT - OUT - NC
+PCD - OUT - NC
+KEN# - IN - connected together with INV, cacheable cycle signal, connected to CTRL FPGA
+CACHE# - OUT - Cacheability cycle definition pin. Asserted when for cacheable reads, cacheable code fetches and writebacks. Connected to CTRL FPGA.
+
+- Multipler selection:
+BF0-BF2 - IN - exposed on J201 header.
+
+- Parity:
+DP0-DP7 - I/O - data parity, pulled up by 4.7K resistors
+PCHK# -  OUT - NC
+AP - I/O - pulled up by 4.7K resistor
+APCHK# - OUT - NC
+
+- APIC:
+PICCLK, PICD0, PICD1 - X - NC
+
+- Dual Processor:
+CPUTYP - IN - connected GND
+D/P# - X - NC
+FRCMC#1 - IN - pulled up by 4.7K resistor
+PBGNT# - X - NC
+PBREQ# - X - NC
+PHIT# - X - NC
+PHITM# - X - NC
+
+- Debug port
+PM0, PM1, BP2, BP3, RDY, R/S# - X - NC
+
+- JTAG
+- TRST# - pulled up by 4.7K resistor
+- TCK, TMS, TDI, TDO - X - exposed on TP201-TP204 test points

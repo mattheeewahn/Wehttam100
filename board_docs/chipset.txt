@@ -1,0 +1,101 @@
+M8MBC-586 chipset:
+
+Built on top of three XC6SLX9 FPGAs and RP2040 
+
+# CTRL FPGA (U401):
+The main controller of the system. 
+It controls:
+- CPU control signals and address lines
+- SDRAM address and control lines
+- PCI data and control lines
+- Interconnect bus to DATA FPGA (32-bit bus with 5 control signals)
+- CPU reset
+- I2C bus for SDRAM SPD
+
+
+# DATA FPGA (U501):
+Connects to the CPU via 64-bit data bus, SDRAM (64-bit) and CTRL FPGA via "interconnect" bus (32-bit bus with 5 control signals). It works as main data path in the system.
+It doesn't control any signals by itself
+Connected things:
+- CPU data bus (C_D0-C_D63)
+- CPU W/R# signal (safety to avoid bus contention)
+- SDRAM data bus (R_D0-R_D63)
+- Interconnect bus data (IBUS_D0-IBUS_D31)
+- Interconnect bus control (IBUS_CMD0-IBUS_CMD4)
+
+
+# ISA FPGA (SB) (U801):
+The ISA FPGA is responsible for all ISA bus signals, interrupts, DMA, and other legacy signals. It's connected to the CTRL FPGA via PCI bus and to the RP2040 system controller via custom one-way communication interface.
+Connected things:
+- ISA bus signals (A0-A19, D0-D15, I/O control signals)
+- ISA bus interrupts (IRQ0-IRQ15)
+- ISA bus DMA (DRQ0-DRQ3, DACK0-DACK3)
+- PCI bus (3.3V side)
+- RP2040 system controller (custom one-way communication interface)
+- System ROM
+- Dallas DS12887 RTC
+- One full RS232 port
+- One IDE port
+
+
+# (Planned) Logic implementation:
+TODO: finish
+
+There are in total 3 main buses: CPU bus (64-bit), SDRAM bus (64-bit) and PCI bus (32-bit)
+
+Buses:
+- CPU bus - 64-bit, master only
+- SDRAM bus - 64-bit, slave only
+- PCI bus - 32-bit, master/slave
+
+The CPU bus is master only, with the exception of being inquired (cache coherency) by other master(s) - here only PCI
+
+FPGA partitioning:
+- DATA 
+Owns: CPU D[63:0], SDRAM DQ[63:0], both line buffers (data only), 32-bit link to CTRL
+Doesn't own: any decision, byte enables, addresses
+- CTRL
+Owns: CPU address/control, SDRAM address/command/DQM, PCI bus, descriptors, state machines, arbiter
+Doesn't own: any wide data path
+- SB (ISA)
+Owns: PCI-ISA bridge, DMA, interrupts, legacy I/O
+
+The only data that crosses the 32-bit CTRL-DATA link is PCI data (dwords between a buffer in DATA and the PCI AD bus). CPU-to-SDRAM and PCI-to-SDRAM data never touch CTRL.
+
+Buffer architecture:
+To simplify the design, each master (CPU, PCI) has its own 32-byte data buffer (8 x 32 bit, or 4 x 64 bit). The size of 32 bytes is chosen to match the cache line size of the Pentium, and it is also exactly one SDRAM burst (burst length 4 on a 64-bit DIMM). Each buffer also has side information (the descriptor): target address, target slave, byte enables and state. During each write/read this buffer is used. The idea is to make internal communication between buses simple.
+Where the buffers live: both data buffers are in the DATA FPGA, and both descriptors are in the CTRL FPGA. The SDRAM DQ pins are on DATA, and an SDRAM burst needs 64 bits per clock for 4 clocks, which the 32-bit link cannot supply. So a buffer must be local to DATA for SDRAM to read from it or write to it directly during the entire cycle (SDRAM itself needs no buffer). For PCI, the link only has to move one dword per PCI clock between the buffer and the AD bus, which it can do.
+CPU buffer (CB): all CPU data. Also the landing buffer for a snoop writeback line (it must be free for that), and the source/sink for CPU-to-PCI cycles.
+PCI buffer (PB): all PCI-target data (DMA and bus-master traffic from PCI cards and the SB).
+
+For example, when the CPU writes to SDRAM, it first writes to its buffer (or fills it in case of writeback), then the SDRAM state machine begins to read from this buffer and write to SDRAM. After the write is done, the CPU buffer is cleared and ready for the next CPU cycle. The same applies to the PCI bus. When PCI does a DMA write to SDRAM, it first writes to its buffer, then the SDRAM state machine reads from this buffer and writes to SDRAM. After the write is done, the PCI buffer is cleared and ready for the next PCI cycle.
+
+Of course these accesses are arbitrated, so only one master can access the target bus at a time. The arbitration is done by another state machine that properly prioritizes the accesses to prevent deadlocks.
+
+The PCI max burst is not "32 bytes from where the burst started". A PCI burst ends (Target Disconnect) at the end of the aligned 32-byte line. This gives:
+- one PCI buffer covers exactly one cache line,
+- one snoop per buffer (no case where a transfer touches two cache lines),
+- one SDRAM burst per buffer (a burst of 4 wraps inside an aligned 4-qword block, so straddling two lines would need two bursts).
+
+A burst that starts mid-line simply ends at the line boundary. Only linear address increment (AD[1:0] = 00) is supported. For any other burst order, disconnect after the first data phase.
+
+Examples:
+1. CPU write to SDRAM
+- CPU wants to write data to system memory
+- PCI is idle
+- SDRAM is idle
+
+The CTRL FPGA detects the CPU write cycle and asserts control signals to the CPU and the DATA FPGA (so it can read data from the CPU into CB). CTRL also stores the address information in the descriptor and begins address decode. While CB is being filled, the SDRAM state machine can go from idle to SDRAM row activation (as the address is already known). The write is posted: BRDY# can be returned once CB is POSTED. Then the SDRAM state machine reads from CB and writes to SDRAM. After the write is done, CB is FREE for the next cycle. The CPU's next cycle waits until CB is FREE.
+
+
+
+
+ISA (SB) FPGA implementation
+The ISA FPGA is responsible for typical south bridge tasks like ISA bus, interrupts, DMA, legacy signals, and communication with the RP2040 system controller. It also controls the system ROM, RTC, and provides one RS232 port and one IDE port. The ISA FPGA is connected to the CTRL FPGA via the PCI bus and to the RP2040 system controller via a custom 2 wire communication interface.
+
+Additions:
+- Subtractive decode: the SB answers any PCI address nobody else claims. The BIOS reset vector at FFFFFFF0h goes this way.
+- DMA and ISA masters: the SB acts as a PCI master to reach memory, through the normal PCI-target path (so the snoop applies). A dedicated SB_REQ#/SB_GNT# handshake keeps ISA latency bounded: the SB asserts SB_REQ#, CTRL stops granting others, finishes the current initiator transaction, drains CB and PB to SDRAM, then asserts PHLDA#. It holds PHLDA# until PHLD# drops, with a maximum-hold timer. Keep CPU-to-PCI transactions short (at most 2 dwords) so the worst-case wait stays bounded. Check the PCI spec's guaranteed-access-time figure for ISA bridges.
+Sideband to the CPU (SB pins directly): INTR, NMI, A20M#, INIT, IGNNE#, FERR# (IRQ13).
+Pin budget: PCI plus ISA alone is about 95 pins, so share buses where possible. IDE data can use the ISA data bus through transceivers, and the ROM can be an ISA-addressed device. The RTC could move to the RP2040 or I2C.
+RP2040 link: a one-way interface is probably not enough. The RP2040 also needs to read status (CPU VID pins, fan tach, DIMM SPD) and write configuration. A small two-way SPI or UART link is cheap insurance.

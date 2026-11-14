@@ -1,0 +1,108 @@
+M8MBC-586 brief list of jumpers, configuration switches and connectors:
+
+# Configuration jumpers
+
+J1001 and J1002 - CPU VCC_CORE source selection (CPU VRM or +3V3 rail):
+- VCC_CORE from CPU VRM (Socket 7 CPUs):
+J1001: 1-2, 3-4, 5-6, 7-8
+J1002: leave all pins open
+- VCC_CORE from +3V3 rail (Socket 5 CPUs):
+J1001: leave all pins open
+J1002: 1-2, 3-4, 5-6, 7-8
+
+SW1001 - CPU VRM voltage selection
+1 is ON
+00000:1.40V
+10000:1.50V
+01000:1.60V
+11000:1.70V
+00100:1.80V
+10100:1.90V
+01100:2.00V
+11100:2.10V
+00010:2.20V
+10010:2.30V
+01010:2.40V
+11010:2.50V
+00110:2.60V
+10110:2.70V
+01110:2.80V
+11110:2.90V
+00011:3.00V
+10011:3.10V
+01011:3.20V
+11011:3.30V
+00111:3.40V
+10111:3.50V
+01111:3.60V
+11111:3.70V
+
+J201 - BUS_MUL - Bus multiplier selection (for Socket 7 CPUs):
+1-2 - BF0
+3-4 - BF1
+5-6 - BF2
+These signals are pulled down by default, so if the jumper is left open, the corresponding bit will be 0. See used CPU datasheet for the configuration of these bits for the desired multiplier.
+
+JP201 - WB/WT# - Write-back / write-through cache selection
+1-2 - HIGH, Write-back cache
+2-3 - LOW, Write-through cache
+
+JP901 - CMOS_CLR - CMOS clear jumper:
+1-2 - Clear CMOS unconnected (normal operation)
+2-3 - Clear CMOS connected (clear CMOS)
+
+JP601 - ISA -5V source selection jumper:
+1-2 - Use onboard -5V regulator
+2-3 - Use -5V from PSU
+
+J1107 - Front panel connector
+1 - HDD_LED+
+2 - PWR_LED+
+3 - GND
+4 - GND
+5 - BTN_RESET#
+6 - BTN_PWR#
+7 - GND
+8 - GND
+9 - NC
+
+J1105 - PC_SPK - PC speaker connector
+1 - SPK-
+2 - NC
+3 - NC
+4 - SPK+
+
+J1106 - LED_PWR - 3-pin power LED connector
+1 - GHD
+2 - GND
+3 - PWR_LED+
+
+J1102 - Primary IDE - 40-pin IDE connector
+
+J1101 - Keyboard and mouse - dual 6-pin combo PS/2 connector
+
+J1103 - Serial 1 - 9-pin RS232 connector
+
+J602 - RP2040 USB connector - USB-C
+
+J1104 - CTRL and DATA FPGA JTAG
+1 - TMS
+2 - TCK
+3 - GND
+4 - TDO
+5 - TDI
+6 - +3V3
+
+J1108 - ISA FPGA JTAG
+1 - TMS
+2 - TCK
+3 - GND
+4 - TDO
+5 - TDI
+6 - +3V3
+
+J603 - RP2040 SWD debug
+1 - RUN
+2 - SWD
+3 - GND
+4 - SWCLK

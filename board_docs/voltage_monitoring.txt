@@ -1,0 +1,19 @@
+The M8MBC-586 features a voltage monitoring feature - provided by the RP2040 system controller's four internal ADCs.
+
+ADCx measured voltage:
+ADC0 - VCC_CORE
+ADC1 - 3.3V
+ADC2 - 5V
+ADC3 - 12V
+
+Divider values
+
+The ADC reads 0 to 3.3V (referenced to the ADC supply), so size each divider to stay under about 3.2V at the worst-case rail voltage.
+Rail                  Top  Bottom  Ratio   At nominal     Thevenin Z
+VCC_CORE (1.2-3.5V)  4.7k    47k   0.909    1.09-3.18V	      4.3k
+3.3V	             10k     33k   0.767    2.53V            7.7k
+5V	                 10k     15k   0.600    3.00V            6k
+12V	                 33k     10k   0.233    2.79V            7.7k
+
+
+The measured value is sent to SB via RP-SB link

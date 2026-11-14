@@ -1,0 +1,7 @@
+M8MBC-586 RAM:
+
+The M8MBC-586 features one 168-pin DIMM slot for SDRAM. The board supports 64-bit wide SDRAM DIMMs with planned 512 MB maximum capacity.
+
+SDRAM data is connected to the DATA FPGA via 64-bit data bus. Rest of the SDRAM signals are connected to the CTRL FPGA (address lines, control signals, etc.). The CTRL FPGA is responsible for generating all necessary signals for the SDRAM to operate correctly.
+
+SPD is read by the CTRL FPGA via I2C bus. The CTRL FPGA automatically configures its SDRAM controller based on the SPD data each reset.
