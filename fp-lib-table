@@ -1,0 +1,4 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "pentium_test")(type "KiCad")(uri "${KIPRJMOD}/pentium_test.pretty")(options "")(descr ""))
+)
